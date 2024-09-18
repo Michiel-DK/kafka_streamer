@@ -38,4 +38,4 @@ while True:
     producer.send('bitcoin', value=bitcoin_price)
 
     # Wait for 10 seconds
-    sleep(5)
+    sleep(300)
