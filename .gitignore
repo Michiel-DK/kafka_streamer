@@ -2,3 +2,7 @@
 .envrc
 *.json
 .python-version
+data/
+checkpoint_dir/
+*.egg-info/
+__pycache__/
