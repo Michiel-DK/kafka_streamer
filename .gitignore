@@ -2,3 +2,5 @@
 .envrc
 *.json
 .python-version
+data/
+checkpoint_dir/

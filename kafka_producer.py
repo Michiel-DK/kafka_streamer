@@ -24,8 +24,10 @@ def get_crypto_price():
     response = requests.get(url, headers=headers)
     data = response.json()
     try:
-        price = data['quotes']['USD']['price']
-        return price
+        diction = data['quotes']['USD'] 
+        diction['symbol'] = data['symbol']
+        diction['beta_value'] = data['beta_value']
+        return diction
     except:
         print(f"Error retrieving price")
         return None
@@ -38,4 +40,4 @@ while True:
     producer.send('bitcoin', value=bitcoin_price)
 
     # Wait for 10 seconds
-    sleep(300)
+    sleep(120)
