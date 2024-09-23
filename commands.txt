@@ -1,0 +1,2 @@
+zookeeper-server-start /opt/homebrew/etc/kafka/zookeeper.properties
+kafka-server-start /opt/homebrew/etc/kafka/server.properties
