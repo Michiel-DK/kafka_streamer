@@ -92,8 +92,6 @@ class BTCDataloader():
             when(col("percent_change_15m") > 0, 1).otherwise(0)
         ).drop('percent_change_15m')
         
-        import ipdb; ipdb.set_trace()
-
         if drop:
             df_final = df_final.na.drop()
 
