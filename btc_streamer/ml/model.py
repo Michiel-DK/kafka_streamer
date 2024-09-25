@@ -22,6 +22,8 @@ try:
     df = btc.load_data()
     df = btc.preproc_split(df)
     
+    import ipdb;ipdb.set_trace()
+    
     # Convert feature columns into a single vector column
     feature_columns = [x.name for x in df.schema if re.search(r'percent', x.name)]
     assembler = VectorAssembler(inputCols=feature_columns, outputCol='features')

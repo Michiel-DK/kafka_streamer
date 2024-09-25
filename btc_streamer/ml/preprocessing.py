@@ -58,15 +58,37 @@ class BTCDataloader():
         
         window_spec = Window.orderBy("timestamp")
         
-        df_transformed = df_5min.select(
-            col("timestamp"),
-            calculate_percentage_change(col("price"), lag("price", 3).over(window_spec)).alias("percent_change_15m"),
-            calculate_percentage_change(col("price"), lag("price", 6).over(window_spec)).alias("percent_change_30m"),
-            calculate_percentage_change(col("price"), lag("price", 12).over(window_spec)).alias("percent_change_1h"),
-            calculate_percentage_change(col("price"), lag("price", 72).over(window_spec)).alias("percent_change_6h"), 
-            calculate_percentage_change(col("price"), lag("price", 144).over(window_spec)).alias("percent_change_12h"),
-            calculate_percentage_change(col("price"), lag("price", 288).over(window_spec)).alias("percent_change_24h"),
-            calculate_percentage_change(col("price"), lag("price", 2016).over(window_spec)).alias("percent_change_7d"),
+        # df_transformed = df_5min.select(
+        #     col("timestamp"),
+        #     calculate_percentage_change(col("price"), lag("price", 3).over(window_spec)).alias("percent_change_15m"),
+        #     calculate_percentage_change(col("price"), lag("price", 6).over(window_spec)).alias("percent_change_30m"),
+        #     calculate_percentage_change(col("price"), lag("price", 12).over(window_spec)).alias("percent_change_1h"),
+        #     calculate_percentage_change(col("price"), lag("price", 72).over(window_spec)).alias("percent_change_6h"), 
+        #     calculate_percentage_change(col("price"), lag("price", 144).over(window_spec)).alias("percent_change_12h"),
+        #     calculate_percentage_change(col("price"), lag("price", 288).over(window_spec)).alias("percent_change_24h"),
+        #     calculate_percentage_change(col("price"), lag("price", 2016).over(window_spec)).alias("percent_change_7d"),
+        # )
+        df_transformed = df_5min.withColumn(
+            "percent_change_15m", 
+            (col("price") - lag("price", 3).over(window_spec)) / lag("price", 3).over(window_spec)
+        ).withColumn(
+            "percent_change_30m", 
+            (col("price") - lag("price", 6).over(window_spec)) / lag("price", 6).over(window_spec)
+        ).withColumn(
+            "percent_change_1h", 
+            (col("price") - lag("price", 12).over(window_spec)) / lag("price", 12).over(window_spec)
+        ).withColumn(
+            "percent_change_6h", 
+            (col("price") - lag("price", 72).over(window_spec)) / lag("price", 72).over(window_spec)
+        ).withColumn(
+            "percent_change_12h", 
+            (col("price") - lag("price", 144).over(window_spec)) / lag("price", 144).over(window_spec)
+        ).withColumn(
+            "percent_change_24h", 
+            (col("price") - lag("price", 288).over(window_spec)) / lag("price", 288).over(window_spec)
+        ).withColumn(
+            "percent_change_7d", 
+            (col("price") - lag("price", 2016).over(window_spec)) / lag("price", 2016).over(window_spec)
         )
         
         df_final = df_transformed.withColumn(
