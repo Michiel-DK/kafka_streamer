@@ -6,3 +6,5 @@ data/
 checkpoint_dir/
 *.egg-info/
 __pycache__/
+wandb/
+commands.txt

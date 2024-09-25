@@ -2,6 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, TimestampType
 from pyspark.sql.functions import col, sum as _sum, last, window, from_unixtime, lag, round, when
 from pyspark.sql.window import Window
+from pyspark.ml.feature import VectorAssembler
 
 
 import os
@@ -52,36 +53,62 @@ class BTCDataloader():
             col("volume_5m").alias("Volume_USD"),
         )
         
-        def calculate_percentage_change(current, previous):
-            return (current - previous) / previous
         
+        window_spec = Window.partitionBy(window(col("timestamp"), "1 week").alias("month")).orderBy("timestamp")
+
         
-        window_spec = Window.orderBy("timestamp")
-        
-        df_transformed = df_5min.select(
-            col("timestamp"),
-            calculate_percentage_change(col("price"), lag("price", 3).over(window_spec)).alias("percent_change_15m"),
-            calculate_percentage_change(col("price"), lag("price", 6).over(window_spec)).alias("percent_change_30m"),
-            calculate_percentage_change(col("price"), lag("price", 12).over(window_spec)).alias("percent_change_1h"),
-            calculate_percentage_change(col("price"), lag("price", 72).over(window_spec)).alias("percent_change_6h"), 
-            calculate_percentage_change(col("price"), lag("price", 144).over(window_spec)).alias("percent_change_12h"),
-            calculate_percentage_change(col("price"), lag("price", 288).over(window_spec)).alias("percent_change_24h"),
-            calculate_percentage_change(col("price"), lag("price", 2016).over(window_spec)).alias("percent_change_7d"),
+        # df_transformed = df_5min.select(
+        #     col("timestamp"),
+        #     calculate_percentage_change(col("price"), lag("price", 3).over(window_spec)).alias("percent_change_15m"),
+        #     calculate_percentage_change(col("price"), lag("price", 6).over(window_spec)).alias("percent_change_30m"),
+        #     calculate_percentage_change(col("price"), lag("price", 12).over(window_spec)).alias("percent_change_1h"),
+        #     calculate_percentage_change(col("price"), lag("price", 72).over(window_spec)).alias("percent_change_6h"), 
+        #     calculate_percentage_change(col("price"), lag("price", 144).over(window_spec)).alias("percent_change_12h"),
+        #     calculate_percentage_change(col("price"), lag("price", 288).over(window_spec)).alias("percent_change_24h"),
+        #     calculate_percentage_change(col("price"), lag("price", 2016).over(window_spec)).alias("percent_change_7d"),
+        # )
+        df_transformed = df_5min.withColumn(
+            "percent_change_15m", 
+            (col("price") - lag("price", 3).over(window_spec)) / lag("price", 3).over(window_spec)
+        ).withColumn(
+            "percent_change_30m", 
+            (col("price") - lag("price", 6).over(window_spec)) / lag("price", 6).over(window_spec)
+        ).withColumn(
+            "percent_change_1h", 
+            (col("price") - lag("price", 12).over(window_spec)) / lag("price", 12).over(window_spec)
+        ).withColumn(
+            "percent_change_6h", 
+            (col("price") - lag("price", 72).over(window_spec)) / lag("price", 72).over(window_spec)
+        ).withColumn(
+            "percent_change_12h", 
+            (col("price") - lag("price", 144).over(window_spec)) / lag("price", 144).over(window_spec)
+        ).withColumn(
+            "percent_change_24h", 
+            (col("price") - lag("price", 288).over(window_spec)) / lag("price", 288).over(window_spec)
         )
         
         df_final = df_transformed.withColumn(
             "target",
             when(col("percent_change_15m") > 0, 1).otherwise(0)
         ).drop('percent_change_15m')
-
+        
         if drop:
             df_final = df_final.na.drop()
+
+        # Convert feature columns into a single vector column
+        feature_columns = [x.name for x in df_final.schema if re.search(r'percent', x.name)]
+        assembler = VectorAssembler(inputCols=feature_columns, outputCol='features')
+            
+        assembled_data = assembler.transform(df_final).select(['features', 'target'])
         
-        df_pipe, df_pipe2 = df_final.randomSplit(weights=[0.05, 0.95], seed=100)
+        df_pipe, df_pipe2 = assembled_data.randomSplit(weights=[0.05, 0.95], seed=100)
+        
+        # Split data into training and test sets
+        train_data, test_data = df_pipe.randomSplit([0.8, 0.2], seed=42)
                     
-        print(f"len dataset: {df_pipe.count()}")
+        print(f"train: {train_data.count()}, test: {test_data.count()}")
         
         #self.spark.stop()
         
-        return df_pipe
+        return train_data, test_data, self.spark
     
