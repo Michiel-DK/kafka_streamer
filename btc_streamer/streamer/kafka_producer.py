@@ -27,6 +27,10 @@ def get_crypto_price():
         diction = data['quotes']['USD'] 
         diction['symbol'] = data['symbol']
         diction['beta_value'] = data['beta_value']
+        diction['timestamp'] = data['last_updated']
+        del diction['ath_price']
+        del diction['ath_date']
+        del diction['percent_from_price_ath']
         return diction
     except:
         print(f"Error retrieving price")

@@ -1,6 +1,6 @@
 # Create the Spark Session
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StringType, StructField, StructType, ArrayType, DoubleType, FloatType, IntegerType, LongType
+from pyspark.sql.types import StringType, StructField, StructType, DoubleType, TimestampType, LongType
 from pyspark.sql.functions import from_json
 from pyspark.sql.functions import  col
 
@@ -39,11 +39,9 @@ def setup_spark():
         StructField("percent_change_7d", DoubleType(), True),
         StructField("percent_change_30d", DoubleType(), True),
         StructField("percent_change_1y", DoubleType(), True),
-        StructField("ath_price", DoubleType(), True),
-        StructField("ath_date", StringType(), True),
-        StructField("percent_from_price_ath", DoubleType(), True),
         StructField("symbol", StringType(), True),
-        StructField("beta_value", DoubleType(), True)
+        StructField("beta_value", DoubleType(), True),
+        StructField("timestamp", TimestampType(), True)
     ])
 
     # Cast the value from binary to string, since Kafka sends messages as bytes
