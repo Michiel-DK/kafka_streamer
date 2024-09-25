@@ -1,6 +1,5 @@
 from btc_streamer.ml.preprocessing import BTCDataloader
 from pyspark.sql import SparkSession
-from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 from xgboost.spark import SparkXGBClassifier
 import re
@@ -20,19 +19,7 @@ try:
     btc = BTCDataloader()
     btc.setup_spark()
     df = btc.load_data()
-    df = btc.preproc_split(df)
-    
-    import ipdb;ipdb.set_trace()
-    
-    # Convert feature columns into a single vector column
-    feature_columns = [x.name for x in df.schema if re.search(r'percent', x.name)]
-    assembler = VectorAssembler(inputCols=feature_columns, outputCol='features')
-        
-    assembled_data = assembler.transform(df).select(['features', 'target'])
-    
-    # Split data into training and test sets
-    train_data, test_data = assembled_data.randomSplit([0.8, 0.2], seed=42)
-
+    train_data, test_data, preproc_spark = btc.preproc_split(df)
     
     params = {
         'objective': 'binary:logistic',  # Binary classification
@@ -47,7 +34,7 @@ try:
         features_col='features',
         label_col='target',
         #params=params,
-        num_workers=2,
+        num_workers=4,
         device='cpu'
     )
     
@@ -73,5 +60,6 @@ except Exception as e:
 finally:
     # Stop Spark session
     if 'spark' in locals():
+        preproc_spark.stop()
         spark.stop()
         logging.info("Spark session stopped.")
