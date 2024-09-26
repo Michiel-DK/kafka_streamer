@@ -102,7 +102,8 @@ class BTCDataloader():
         
         if split:
         
-            df_pipe, df_pipe2 = assembled_data_train.randomSplit(weights=[0.2, 0.8], seed=42)
+            #df_pipe, df_pipe2 = assembled_data_train.randomSplit(weights=[0.2, 0.8], seed=42)
+            df_pipe = assembled_data_train
             
             # Split data into training and test sets
             train_data, val_data = df_pipe.randomSplit([0.8, 0.2], seed=42)
