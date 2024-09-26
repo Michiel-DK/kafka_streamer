@@ -49,21 +49,20 @@ class XGBoostTrainer():
         'booster': 'gbtree',
         'tree_method': 'auto',           # Ensure using CPU
         'num_round': 100,
-        'eta': 0.1
+        'eta': 0.01
             }
         
             # Create and train the XGBoostEstimator model
         xgb_estimator = SparkXGBClassifier(
             features_col='features',
             label_col='target',
-            params=params,
             num_workers=4,
             device='cpu',
             validation_indicator_col = 'isVal',
-
+            eval_metric='auc',
         )
         
-        xgb_estimator.setParams(early_stopping_rounds=5)
+        xgb_estimator.setParams(early_stopping_rounds=10)
         
         self.model = xgb_estimator.fit(train_data)
         
