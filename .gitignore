@@ -8,3 +8,6 @@ checkpoint_dir/
 __pycache__/
 wandb/
 commands.txt
+*.html
+.DS_Store
+*.csv
