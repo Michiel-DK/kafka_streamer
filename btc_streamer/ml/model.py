@@ -26,41 +26,28 @@ wandb.init(project="xg_boost_test")
 
 class XGBoostTrainer():
     def __init__(self) -> None:
-        pass
+        self.spark = None
+        self.app_name = None
     
-    def setup_spark(self):
+    def setup_spark(self, app_name: 'str' = 'XGBoostSpark'):
+        self.app_name = app_name
         self.spark = SparkSession.builder \
-            .appName("XGBoostSpark") \
+            .appName(self.app_name) \
             .getOrCreate()
         logging.info("Spark session initialized successfully.")
-        
-    # def get_data(self):
-    #     btc = BTCDataloader()
-    #     btc.setup_spark()
-    #     df = btc.load_data()
-    #     train_data, test_data, preproc_spark = btc.preproc_split(df)
-        
-    #     return train_data, test_data, btc.feature_columns
     
-    def train_model(self, train_data):
+    def train_model(self, train_data, xgb_estimator=None):
         
-        params = {
-        'objective': 'binary:logistic',  # Binary classification
-        'booster': 'gbtree',
-        'tree_method': 'auto',           # Ensure using CPU
-        'num_round': 100,
-        'eta': 0.01
-            }
-        
+        if not xgb_estimator:
             # Create and train the XGBoostEstimator model
-        xgb_estimator = SparkXGBClassifier(
-            features_col='features',
-            label_col='target',
-            num_workers=4,
-            device='cpu',
-            validation_indicator_col = 'isVal',
-            eval_metric='auc',
-        )
+            xgb_estimator = SparkXGBClassifier(
+                features_col='features',
+                label_col='target',
+                num_workers=4,
+                device='cpu',
+                validation_indicator_col = 'isVal',
+                eval_metric='auc',
+            )
         
         xgb_estimator.setParams(early_stopping_rounds=10)
         
@@ -68,10 +55,14 @@ class XGBoostTrainer():
         
         return self.model
     
-    def score_model(self, test_data, feature_columns, original_test_set):
+    def score_model(self, test_data, feature_columns, original_test_set, model=None):
         
         # Make predictions
-        predictions = self.model.transform(test_data)
+        if model is None:
+            predictions = self.model.transform(test_data)
+        else:
+            self.model = model
+            predictions = self.model.transform(test_data)
         
         # Evaluate the model
         evaluator = BinaryClassificationEvaluator(
@@ -94,10 +85,7 @@ class XGBoostTrainer():
         plot_set = np.array(preds.join(original_test_set, on="index", how="outer").select("prediction", 'index_1_probability', 'price', 'timestamp').collect())
     
         preds_numpy = np.array(preds.select("target", "prediction", 'index_0_probability','index_1_probability').collect())
-        
-        import pandas as pd
-        pd.DataFrame(plot_set).to_csv('preds.csv')
-        
+
         y_true = preds_numpy[:,0]
         y_pred = preds_numpy[:,1]
         y_prob = preds_numpy[:,-2:]
