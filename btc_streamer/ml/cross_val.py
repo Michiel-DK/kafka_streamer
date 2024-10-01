@@ -48,10 +48,13 @@ def cross_validator():
                             numFolds=3)  
 
     cv_model = crossval.fit(train_data)
+    
+    import ipdb;ipdb.set_trace()
 
     best_model = cv_model.bestModel
 
-    model = XGBoostTrainer().setup_spark()
+    xg = XGBoostTrainer()
+    model = xg.setup(model=best_model)
     model.score_model(test_data, btc.feature_columns, btc.test_set, best_model)
 
     import ipdb; ipdb.set_trace()

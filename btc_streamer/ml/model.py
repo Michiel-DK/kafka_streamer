@@ -29,18 +29,16 @@ class XGBoostTrainer():
         self.spark = None
         self.app_name = None
     
-    def setup_spark(self, app_name: 'str' = 'XGBoostSpark'):
+    def setup(self, app_name: 'str' = 'XGBoostSpark', model=None):
         self.app_name = app_name
         self.spark = SparkSession.builder \
             .appName(self.app_name) \
             .getOrCreate()
         logging.info("Spark session initialized successfully.")
-    
-    def train_model(self, train_data, xgb_estimator=None):
         
-        if not xgb_estimator:
+        if not model:
             # Create and train the XGBoostEstimator model
-            xgb_estimator = SparkXGBClassifier(
+            self.model = SparkXGBClassifier(
                 features_col='features',
                 label_col='target',
                 num_workers=4,
@@ -48,6 +46,12 @@ class XGBoostTrainer():
                 validation_indicator_col = 'isVal',
                 eval_metric='auc',
             )
+        else:
+            self.model = model
+            
+        return self.model
+    
+    def train_model(self, train_data, xgb_estimator=None):
         
         xgb_estimator.setParams(early_stopping_rounds=10)
         
@@ -137,10 +141,10 @@ if __name__=='__main__':
         
         
         xg = XGBoostTrainer()
-        xg.setup_spark()
+        xg.setup()
         
         
-        model = xg.train_model(train_data)
+        model = xg.train_model(train_data, model=xg.model)
         xg.score_model(test_data, btc.feature_columns, btc.test_set)
         
     except Exception as e:
