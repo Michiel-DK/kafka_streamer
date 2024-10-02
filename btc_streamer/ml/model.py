@@ -26,41 +26,32 @@ wandb.init(project="xg_boost_test")
 
 class XGBoostTrainer():
     def __init__(self) -> None:
-        pass
+        self.spark = None
+        self.app_name = None
     
-    def setup_spark(self):
+    def setup(self, app_name: 'str' = 'XGBoostSpark', model=None):
+        self.app_name = app_name
         self.spark = SparkSession.builder \
-            .appName("XGBoostSpark") \
+            .appName(self.app_name) \
             .getOrCreate()
         logging.info("Spark session initialized successfully.")
         
-    # def get_data(self):
-    #     btc = BTCDataloader()
-    #     btc.setup_spark()
-    #     df = btc.load_data()
-    #     train_data, test_data, preproc_spark = btc.preproc_split(df)
-        
-    #     return train_data, test_data, btc.feature_columns
-    
-    def train_model(self, train_data):
-        
-        params = {
-        'objective': 'binary:logistic',  # Binary classification
-        'booster': 'gbtree',
-        'tree_method': 'auto',           # Ensure using CPU
-        'num_round': 100,
-        'eta': 0.01
-            }
-        
+        if not model:
             # Create and train the XGBoostEstimator model
-        xgb_estimator = SparkXGBClassifier(
-            features_col='features',
-            label_col='target',
-            num_workers=4,
-            device='cpu',
-            validation_indicator_col = 'isVal',
-            eval_metric='auc',
-        )
+            self.model = SparkXGBClassifier(
+                features_col='features',
+                label_col='target',
+                num_workers=4,
+                device='cpu',
+                validation_indicator_col = 'isVal',
+                eval_metric='auc',
+            )
+        else:
+            self.model = model
+            
+        return self.model
+    
+    def train_model(self, train_data, xgb_estimator=None):
         
         xgb_estimator.setParams(early_stopping_rounds=10)
         
@@ -68,10 +59,25 @@ class XGBoostTrainer():
         
         return self.model
     
-    def score_model(self, test_data, feature_columns, original_test_set):
+    def score_model(self, train_data, test_data, feature_columns, original_test_set, best_model=None):
         
-        # Make predictions
+        if best_model:
+            self.model = best_model
+                
+        best_params = {param.name for param in best_model.extractParamMap().keys()}
+        
+        param_dict = {}
+        
+        for param in best_params:
+            value = best_model.getOrDefault(param)
+            
+            if value:
+                param_dict[param] = value
+
         predictions = self.model.transform(test_data)
+        predictions_train = self.model.transform(train_data)
+
+        wandb.log(param_dict)
         
         # Evaluate the model
         evaluator = BinaryClassificationEvaluator(
@@ -80,7 +86,9 @@ class XGBoostTrainer():
             metricName='areaUnderROC'
         )
 
-        roc_auc = evaluator.evaluate(predictions)
+        # Calculate training score (on the train_data using the best model)
+        train_roc = evaluator.evaluate(predictions_train)
+        test_roc = evaluator.evaluate(predictions)    
         
         preds = self.model.transform(test_data).select("target", "prediction", 'probability')
                 
@@ -94,10 +102,7 @@ class XGBoostTrainer():
         plot_set = np.array(preds.join(original_test_set, on="index", how="outer").select("prediction", 'index_1_probability', 'price', 'timestamp').collect())
     
         preds_numpy = np.array(preds.select("target", "prediction", 'index_0_probability','index_1_probability').collect())
-        
-        import pandas as pd
-        pd.DataFrame(plot_set).to_csv('preds.csv')
-        
+
         y_true = preds_numpy[:,0]
         y_pred = preds_numpy[:,1]
         y_prob = preds_numpy[:,-2:]
@@ -107,7 +112,8 @@ class XGBoostTrainer():
         recall = recall_score(y_true, y_pred)
         
         scores = {
-            'roc_auc': roc_auc,
+            'train_roc': train_roc,
+            'test_roc': test_roc,
             'accuracy': acc,
             'precision': precision,
             'recall':recall
@@ -149,10 +155,10 @@ if __name__=='__main__':
         
         
         xg = XGBoostTrainer()
-        xg.setup_spark()
+        xg.setup()
         
         
-        model = xg.train_model(train_data)
+        model = xg.train_model(train_data, model=xg.model)
         xg.score_model(test_data, btc.feature_columns, btc.test_set)
         
     except Exception as e:
