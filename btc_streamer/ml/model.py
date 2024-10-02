@@ -59,14 +59,25 @@ class XGBoostTrainer():
         
         return self.model
     
-    def score_model(self, test_data, feature_columns, original_test_set, model=None):
+    def score_model(self, train_data, test_data, feature_columns, original_test_set, best_model=None):
         
-        # Make predictions
-        if model is None:
-            predictions = self.model.transform(test_data)
-        else:
-            self.model = model
-            predictions = self.model.transform(test_data)
+        if best_model:
+            self.model = best_model
+                
+        best_params = {param.name for param in best_model.extractParamMap().keys()}
+        
+        param_dict = {}
+        
+        for param in best_params:
+            value = best_model.getOrDefault(param)
+            
+            if value:
+                param_dict[param] = value
+
+        predictions = self.model.transform(test_data)
+        predictions_train = self.model.transform(train_data)
+
+        wandb.log(param_dict)
         
         # Evaluate the model
         evaluator = BinaryClassificationEvaluator(
@@ -75,7 +86,9 @@ class XGBoostTrainer():
             metricName='areaUnderROC'
         )
 
-        roc_auc = evaluator.evaluate(predictions)
+        # Calculate training score (on the train_data using the best model)
+        train_roc = evaluator.evaluate(predictions_train)
+        test_roc = evaluator.evaluate(predictions)    
         
         preds = self.model.transform(test_data).select("target", "prediction", 'probability')
                 
@@ -99,7 +112,8 @@ class XGBoostTrainer():
         recall = recall_score(y_true, y_pred)
         
         scores = {
-            'roc_auc': roc_auc,
+            'train_roc': train_roc,
+            'test_roc': test_roc,
             'accuracy': acc,
             'precision': precision,
             'recall':recall
