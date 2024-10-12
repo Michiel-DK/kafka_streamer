@@ -11,3 +11,4 @@ commands.txt
 *.html
 .DS_Store
 *.csv
+models/
