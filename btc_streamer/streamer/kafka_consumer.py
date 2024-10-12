@@ -6,6 +6,8 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from btc_streamer.ml.model_utils import load_model, predict
+
 # Create a consumer instance
 consumer = KafkaConsumer(
     'bitcoin',
@@ -22,9 +24,12 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 timestamps = []
 prices = []
 
+model = load_model()
+
 # Start consuming
 for message in consumer:
-    print(message)
+    pred = predict(model=model, response=message.value)
+    print(pred)
     # topic = message.topic
     # value = message.value
     # timestamp = message.timestamp / 1000.0  # Convert epoch milliseconds to seconds

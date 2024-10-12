@@ -8,7 +8,7 @@ asttokens==2.4.1
 async-timeout==4.0.3
 attrs==24.2.0
 bokeh==3.5.2
--e git+ssh://git@github.com/Michiel-DK/kafka_streamer.git@c1de1081cb5f2f051ff4334e0f556b966459d8cc#egg=btc_streamer
+#-e git+ssh://git@github.com/Michiel-DK/kafka_streamer.git@6b04b788c283553ebe739b68868a25c5cf4924d6#egg=btc_streamer
 certifi==2024.8.30
 charset-normalizer==3.3.2
 click==8.1.7
