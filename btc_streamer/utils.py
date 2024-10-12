@@ -84,6 +84,7 @@ def plot_probas(plot_set, path_to_plotly_html:'str'='.'):
     plot_set.set_index('time', inplace=True)
     
     resampled = plot_set.resample('d').agg({'label': 'sum', 'prob':'count', 'price':'last'}).reset_index()
+    resampled = resampled[resampled['prob'] != 0]
     resampled['buy_percentage'] = resampled['label'] / resampled['prob']
     resampled = np.array(resampled)
         
