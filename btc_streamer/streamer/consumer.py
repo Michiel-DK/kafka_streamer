@@ -30,6 +30,7 @@ model = load_model()
 for message in consumer:
     pred = predict(model=model, response=message.value)
     print(pred)
+    import ipdb;ipdb.set_trace()
     # topic = message.topic
     # value = message.value
     # timestamp = message.timestamp / 1000.0  # Convert epoch milliseconds to seconds

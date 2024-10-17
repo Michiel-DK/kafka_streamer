@@ -58,6 +58,6 @@ def predict(response: dict, model: SparkXGBClassifierModel, session_name: str = 
                 
     assembled_data_train = assembler.transform(df_final).select(['features', 'target'])
     
-    response = model.transform(assembled_data_train).show()
+    response = model.transform(assembled_data_train)
 
     return response
