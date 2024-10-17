@@ -37,12 +37,12 @@ for message in consumer:
     message_df['prediction'] =  pred_df['prediction']
     message_df['probability'] =  pred_df['probability'].values[0][-1]
     message_df['timestamp'] = pd.to_datetime(message_df['timestamp'])
-    
-    print(message_df.timestamp)
-    
+        
     message_df.set_index('timestamp', inplace=True)
     
     base_df = pd.concat([message_df, base_df], axis=1)
+    
+    print(len(base_df))
     
     
     if len(base_df) == 5:
