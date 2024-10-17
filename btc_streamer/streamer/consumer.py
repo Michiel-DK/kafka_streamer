@@ -24,7 +24,7 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 timestamps = []
 prices = []
 
-model = load_model()
+model = load_model('models/xgboost_model_2024-10-17_10_30_57')
 
 # Start consuming
 for message in consumer:
