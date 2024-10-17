@@ -11,6 +11,9 @@ from pyspark.sql.functions import col
 from pyspark.sql import functions as F
 from btc_streamer.utils import *
 
+from datetime import datetime
+
+
 import wandb
 import os
 
@@ -209,6 +212,10 @@ class XGBoostTrainer():
         """
         if not self.model:
             raise ValueError("No model found. Train the model before saving.")
+        
+        current_timestamp = datetime.now()
+        timestamp_str = current_timestamp.strftime("%Y-%m-%d_%H_%M_%S")
+        path = f"{path}_{timestamp_str}"
         
         # Save the model locally
         if not os.path.exists(path):

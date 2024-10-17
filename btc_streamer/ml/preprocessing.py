@@ -60,6 +60,7 @@ class BTCDataloader():
         
         window_spec = Window.partitionBy(window(col("timestamp"), "1 week").alias("month")).orderBy("timestamp")
 
+        #create lagged columns
         df_transformed = df_5min.withColumn(
             "percent_change_15m", 
             (col("price") - lag("price", 3).over(window_spec)) / lag("price", 3).over(window_spec)
@@ -80,14 +81,22 @@ class BTCDataloader():
             (col("price") - lag("price", 288).over(window_spec)) / lag("price", 288).over(window_spec)
         )
         
-        df_final = df_transformed.withColumn(
-            "target",
-            when(col("percent_change_15m") > 0, 1).otherwise(0)
-        ).drop('percent_change_15m')
         
         if drop:
-            df_final = df_final.na.drop()
+            df_final = df_transformed.na.drop()
             
+        #import ipdb;ipdb.set_trace()
+                
+        #create future column for target
+        df_final = df_final.withColumn("price_plus_15m", F.lag("price", -3).over(window_spec))
+        
+        df_final = df_final.withColumn("price_change_15m", (F.col("price_plus_15m") - F.col("price")) / F.col("price"))
+        
+        df_final = df_final.withColumn(
+            "target",
+            when(col("price_change_15m") > 0, 1).otherwise(0)
+        )
+        
         train_set = df_final.filter(F.year(F.col('timestamp')) != 2023)  # All other years
         test_set = df_final.filter(F.year(F.col('timestamp')) == 2023)   # Only 2023 observations
         
