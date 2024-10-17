@@ -23,17 +23,31 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 timestamps = []
 prices = []
+base_df = pd.DataFrame()
 
 model = load_model('models/xgboost_model_2024-10-17_10_30_57')
 
 # Start consuming
 for message in consumer:
-    pred = predict(model=model, response=message.value)
-    print(pred)
-    import ipdb;ipdb.set_trace()
-    # topic = message.topic
-    # value = message.value
-    # timestamp = message.timestamp / 1000.0  # Convert epoch milliseconds to seconds
+    pred = predict(model=model, response=message.value)    
+    
+    pred_df = pred.toPandas()
+    
+    message_df = pd.DataFrame([message.value])
+    message_df['prediction'] =  pred_df['prediction']
+    message_df['probability'] =  pred_df['probability'].values[0][-1]
+    message_df['timestamp'] = pd.to_datetime(message_df['timestamp'])
+    
+    print(message_df.timestamp)
+    
+    message_df.set_index('timestamp', inplace=True)
+    
+    base_df = pd.concat([message_df, base_df], axis=1)
+    
+    
+    if len(base_df) == 5:
+        import ipdb; ipdb.set_trace()    
+    
 
     # # Round the value to the nearest dollar
     # rounded_value = round(value)
