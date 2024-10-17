@@ -81,8 +81,11 @@ class BTCDataloader():
             (col("price") - lag("price", 288).over(window_spec)) / lag("price", 288).over(window_spec)
         )
         
+        
         if drop:
             df_final = df_transformed.na.drop()
+            
+        #import ipdb;ipdb.set_trace()
                 
         #create future column for target
         df_final = df_final.withColumn("price_plus_15m", F.lag("price", -3).over(window_spec))

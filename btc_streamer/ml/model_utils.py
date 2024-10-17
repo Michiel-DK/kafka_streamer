@@ -5,6 +5,7 @@ from pyspark.sql.functions import col, sum as _sum, last, window, from_unixtime,
 import re
 from pyspark.ml.feature import VectorAssembler
 
+
 def load_model(path: str = 'models/xgboost_model', session_name: str = 'XGBoostLoadModel') -> SparkXGBClassifierModel:
     """
     Loads a previously saved XGBoost model from the specified path.
@@ -32,9 +33,7 @@ def predict(response: dict, model: SparkXGBClassifierModel, session_name: str = 
     Returns:
         dict: The response dictionary containing the input features and the predicted label.
     """
-
-
-
+    
     # Initialize a Spark session
     spark = SparkSession.builder.appName(session_name).getOrCreate()
 
@@ -47,17 +46,19 @@ def predict(response: dict, model: SparkXGBClassifierModel, session_name: str = 
 
     # Converting the Pandas DataFrame to Spark DataFrame
     spark_df = spark.createDataFrame(filtered_df)
+    
 
-    df_final = spark_df.withColumn(
-                "target",
-                when(col("percent_change_15m") > 0, 1).otherwise(0)
-            ).drop('percent_change_15m')
-
-    feature_columns = [x.name for x in df_final.schema if re.search(r'percent', x.name)]
+    feature_columns = [x.name for x in spark_df.schema if re.search(r'percent', x.name)]
     assembler = VectorAssembler(inputCols=feature_columns, outputCol='features')
                 
-    assembled_data_train = assembler.transform(df_final).select(['features', 'target'])
+    assembled_data_train = assembler.transform(spark_df).select(['features'])
     
     response = model.transform(assembled_data_train)
 
     return response
+
+
+if __name__ == '__main__':
+    model = load_model('models/xgboost_model_2024-10-17_10_30_57')
+    di = {'price': 67232.6000817046, 'volume_24h': 33908878129.99016, 'volume_24h_change_24h': -28.86, 'market_cap': 1329111992916, 'market_cap_change_24h': -0.54, 'percent_change_15m': 0, 'percent_change_30m': -0.08, 'percent_change_1h': -0.22, 'percent_change_6h': -0.4, 'percent_change_12h': -0.63, 'percent_change_24h': -0.54, 'percent_change_7d': 10.16, 'percent_change_30d': 12.42, 'percent_change_1y': 136.29, 'symbol': 'BTC', 'beta_value': 0.976775, 'timestamp': '2024-10-17T10:07:35Z'}
+    resp = predict(di, model)

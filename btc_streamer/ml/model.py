@@ -214,7 +214,7 @@ class XGBoostTrainer():
             raise ValueError("No model found. Train the model before saving.")
         
         current_timestamp = datetime.now()
-        timestamp_str = current_timestamp.strftime("%Y-%m-%d_%H:%M:%S")
+        timestamp_str = current_timestamp.strftime("%Y-%m-%d_%H_%M_%S")
         path = f"{path}_{timestamp_str}"
         
         # Save the model locally
